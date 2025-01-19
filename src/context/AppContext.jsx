@@ -1,32 +1,39 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
-import testData from '../data/test_data.json';
+// import testData from '../data/test_data.json'; -- commenting out as the test data isn't used, but leaving as a reference.
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
 
 const AppContext = createContext({});
+// For the API calls, to handle more programmatically.
+const baseURL = 'https://hrf-asylum-be-b.herokuapp.com/cases'; 
 
-/**
- * TODO: Ticket 2:
- * - Use axios to fetch the data
- * - Store the data
- * - Populate the graphs with the stored data
- */
 const useAppContextProvider = () => {
-  const [graphData, setGraphData] = useState(testData);
+  // set graphData's initial state to an empty object instead of the test_data.
+  const [graphData, setGraphData] = useState({});
   const [isDataLoading, setIsDataLoading] = useState(false);
 
   useLocalStorage({ graphData, setGraphData });
 
-  const getFiscalData = () => {
-    // TODO: Replace this with functionality to retrieve the data from the fiscalSummary endpoint
-    const fiscalDataRes = testData;
-    return fiscalDataRes;
+  const getFiscalData = async () => {
+    try {
+      // fetch the fiscalSummary
+      const fiscalDataRes = await axios.get(`${baseURL}/fiscalSummary`); 
+      // return only the reaResults portion of this API response, the data above wasn't used.
+      return fiscalDataRes.data.yearResults; 
+    } catch (error) {
+      console.error(`Error fetching fiscalSummary data ${error}`); // print the error if one ocurrs.
+    }
   };
 
   const getCitizenshipResults = async () => {
-    // TODO: Replace this with functionality to retrieve the data from the citizenshipSummary endpoint
-    const citizenshipRes = testData.citizenshipResults;
-    return citizenshipRes;
+    try {
+      // fetch the citizenshipSummary
+      const citizenshipRes = await axios.get(`${baseURL}/citizenshipSummary`); 
+      // return only the data within the citizenshipSummary.
+      return citizenshipRes.data; 
+    } catch (error) {
+      console.error(`Error fetching fiscalSummary data ${error}`);
+    }
   };
 
   const updateQuery = async () => {
@@ -34,7 +41,21 @@ const useAppContextProvider = () => {
   };
 
   const fetchData = async () => {
-    // TODO: fetch all the required data and set it to the graphData state
+    try {
+      // fetch the fiscal and citizenship data one after another; wait for both responses before continuing.
+      const [fiscalData, citizenshipData] = await Promise.all([getFiscalData(), getCitizenshipResults()]);
+      // set the graphData state to an object containing the properties other components look for and access.
+      setGraphData({
+        yearResults: fiscalData,
+        citizenshipResults: citizenshipData,
+      })
+      // Once promises resolve (data is available/finished), remove the Loading message.
+      setIsDataLoading(false)
+    } catch (error) {
+      console.error(`Error fetching citizenshipSummary and/or fiscalSummary data ${error}`);
+      // If there's an error, remove the loading message.
+      setIsDataLoading(false)
+    }
   };
 
   const clearQuery = () => {
