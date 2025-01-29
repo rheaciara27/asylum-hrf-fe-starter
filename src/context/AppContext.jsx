@@ -1,10 +1,10 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
-
+// import testData from '../data/test_data.json'; -- commenting out as the test data isn't used, but leaving as a reference.
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
 
 const AppContext = createContext({});
-
+// For the API calls, to handle more programmatically.
 const baseURL = 'https://hrf-asylum-be-b.herokuapp.com/cases'; 
 
 const useAppContextProvider = () => {
@@ -29,7 +29,7 @@ const useAppContextProvider = () => {
     try {
       // fetch the citizenshipSummary
       const citizenshipRes = await axios.get(`${baseURL}/citizenshipSummary`); 
-      
+      // return only the data within the citizenshipSummary.
       return citizenshipRes.data; 
     } catch (error) {
       console.error(`Error fetching fiscalSummary data ${error}`);
@@ -42,18 +42,18 @@ const useAppContextProvider = () => {
 
   const fetchData = async () => {
     try {
-    
+      // fetch the fiscal and citizenship data one after another; wait for both responses before continuing.
       const [fiscalData, citizenshipData] = await Promise.all([getFiscalData(), getCitizenshipResults()]);
-      
+      // set the graphData state to an object containing the properties other components look for and access.
       setGraphData({
         yearResults: fiscalData,
         citizenshipResults: citizenshipData,
       })
-      
+      // Once promises resolve (data is available/finished), remove the Loading message.
       setIsDataLoading(false)
     } catch (error) {
       console.error(`Error fetching citizenshipSummary and/or fiscalSummary data ${error}`);
-  
+      // If there's an error, remove the loading message.
       setIsDataLoading(false)
     }
   };
